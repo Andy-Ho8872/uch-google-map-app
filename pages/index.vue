@@ -4,8 +4,8 @@
             <!-- 顯示當前座標 -->
             <div>
                 <v-card-title
-                    >你當前的位置: 經度:{{ userGeolocation.lng }} 緯度:
-                    {{ userGeolocation.lat }}</v-card-title
+                    >你當前的位置: 經度:{{ userPosition.lng }} 緯度:
+                    {{ userPosition.lat }}</v-card-title
                 >
             </div>
             <div class="mt-3">
@@ -27,22 +27,26 @@
         </div>
         <!-- google 地圖畫面 -->
         <GmapMap
-            :center="userGeolocation"
-            :zoom="14"
+            :center="userPosition"
+            :zoom="10"
             style="width: 100%; height: 650px"
         >
+            <!-- 座標點視窗 -->
+            <GmapInfoWindow
+                :options="infoOptions"
+                :position="infoWindowPosition"
+                :opened="infoWinOpen"
+                @closeclick="infoWinOpen = false"
+            ></GmapInfoWindow>
             <!-- 預設座標點位 -->
             <GmapMarker
                 v-for="(mark, index) in markers"
                 :key="index"
                 :position="mark.position"
-            ></GmapMarker>
-            <!-- 使用者的座標 -->
-            <GmapMarker
-                :position="userGeolocation"
-                title="你的位置"
-                :icon="userGeolocation.icon"
-                size="18"
+                :icon="mark.icon"
+                :title="mark.title"
+                :clickable="true"
+                @click="toggleInfoWindow(mark, index)"
             ></GmapMarker>
         </GmapMap>
     </v-card>
@@ -54,12 +58,27 @@ export default {
         return {
             // 搜尋的點位
             place: null,
+            // 座標點視窗
+            infoWindowPosition: null,
+            infoWinOpen: false,
+            currentMiddleIndex: null,
+            infoOptions: {
+                content: '預設文字',
+                //optional: offset infowindow so it visually sits nicely on top of our marker
+                pixelOffset: {
+                    width: 0,
+                    height: -40,
+                },
+            },
             // 使用者目前的座標
             userGeolocation: {
-                //預設座標
-                lat: 24.950659,
-                lng: 121.2568154,
+                // 預設點位
+                position: {
+                    lat: 24.950659,
+                    lng: 121.2568154,
+                }
             },
+            // 當前地圖中心點
             center: {
                 // 健行科大經緯度
                 lat: 24.947237,
@@ -72,8 +91,27 @@ export default {
                         lat: 24.947237,
                         lng: 121.229167,
                     },
+                    infoText: '<b>測試456</b>',
                 },
             ],
+        }
+    },
+    computed: {
+        userPosition() {
+            //預設座標
+            const defaultUserPosition = {
+                position: {
+                    lat: 24.850659,
+                    lng: 120.2568154,
+                },
+            }
+            //真實座標
+            if(this.userGeolocation != null) {
+                return this.userGeolocation
+            }
+            else {
+                return defaultUserPosition
+            }
         }
     },
     methods: {
@@ -84,40 +122,44 @@ export default {
         // 獲得使用者的座標
         async getGeoLocation() {
             if (navigator.geolocation) {
-                await navigator.geolocation.getCurrentPosition((position) => {
-                    const userPosition = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
+                await navigator.geolocation.getCurrentPosition((pos) => {
+                    //! 此處需要再測試
+                    const position = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
                         icon: {
                             url: 'http://maps.google.com/mapfiles/ms/icons/pink-dot.png',
                         },
+                        infoText: '你的位置',
                     }
-                    this.setUserPosition(userPosition)
+                    this.setUserPosition(position)
+                    this.addUserMarker(position)
                 })
             }
         },
-        addMarker() {
+        // 切換座標點資訊視窗
+        toggleInfoWindow(marker, index) {
+            this.infoWindowPosition = marker.position
+            this.infoOptions.content = marker.infoText
+            // 檢查是否是相同的 marker 被選取，如果是則切換
+            if (this.currentMiddleIndex == index) {
+                this.infoWinOpen = !this.infoWinOpen
+            }
+            // 如果是不同的 marker 則打開該 marker 的視窗，且重設當前 marker 的索引(index)
+            else {
+                this.infoWinOpen = true
+                this.currentMiddleIndex = index
+            }
+        },
+        addUserMarker(position) {
             this.markers.push({
-                position: {
-                    lat: 24.937237,
-                    lng: 121.22814,
-                },
+                position,
             })
         },
-        // setPlace(place) {
-        //     if (!place) return
-        //     this.markers.push({
-        //         position: {
-        //             lat: this.place.geometry.location.lat(),
-        //             lng: this.place.geometry.location.lng(),
-        //         },
-        //     })
-        //     console.log(this.markers)
-        // },
     },
     mounted() {
         this.getGeoLocation()
-        this.addMarker()
+        this.addUserMarker()
     },
 }
 </script>
