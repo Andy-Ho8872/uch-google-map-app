@@ -7,6 +7,43 @@
                     >你當前的位置: 經度:{{ userPosition.lng }} 緯度:
                     {{ userPosition.lat }}</v-card-title
                 >
+                <!-- 上傳當前位置並留言 -->
+                <v-card-subtitle @click="dialog = true">
+                    <v-btn color="primary">上傳我的位置</v-btn>
+                </v-card-subtitle>
+                <v-row>
+                    <v-dialog v-model="dialog" width="600">
+                        <v-card>
+                            <!-- 表單標題 -->
+                            <v-card-title>上傳位置</v-card-title>
+                            <!-- 用戶名稱 -->
+                            <v-card-subtitle class="my-2"
+                                >用戶: 王小明</v-card-subtitle
+                            >
+                            <v-card-text>
+                                <v-row>
+                                    <v-col>
+                                        <v-textarea
+                                            label="介紹你目前的所在地"
+                                            name="comment"
+                                        ></v-textarea>
+                                    </v-col>
+                                </v-row>
+                            </v-card-text>
+                            <!-- 按鈕區域 -->
+                            <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn
+                                    @click="dialog = false"
+                                    color="red"
+                                    outlined
+                                    >取消</v-btn
+                                >
+                                <v-btn color="primary">確認</v-btn>
+                            </v-card-actions>
+                        </v-card>
+                    </v-dialog>
+                </v-row>
             </div>
             <div class="mt-3">
                 <!-- 自動完成輸入 -->
@@ -56,6 +93,8 @@
 export default {
     data() {
         return {
+            // 上傳座標的表單
+            dialog: false,
             // 搜尋的點位
             place: null,
             // 座標點視窗
@@ -76,7 +115,7 @@ export default {
                 position: {
                     lat: 24.950659,
                     lng: 121.2568154,
-                }
+                },
             },
             // 當前地圖中心點
             center: {
@@ -101,39 +140,39 @@ export default {
             //預設座標
             const defaultUserPosition = {
                 position: {
-                    lat: 24.850659,
+                    lat: 21.850659,
                     lng: 120.2568154,
                 },
             }
             //真實座標
-            if(this.userGeolocation != null) {
+            if (this.userGeolocation != null) {
                 return this.userGeolocation
             }
-            else {
-                return defaultUserPosition
-            }
-        }
+            return defaultUserPosition
+        },
     },
     methods: {
         // 寫入使用者的座標
-        setUserPosition(position) {
-            this.userGeolocation = position
+        setUserPosition(data) {
+            this.userGeolocation = data.position
         },
         // 獲得使用者的座標
         async getGeoLocation() {
             if (navigator.geolocation) {
                 await navigator.geolocation.getCurrentPosition((pos) => {
-                    //! 此處需要再測試
-                    const position = {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
+                    const data = 
+                    {
+                        position: {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                        },
                         icon: {
                             url: 'http://maps.google.com/mapfiles/ms/icons/pink-dot.png',
                         },
-                        infoText: '你的位置',
+                        infoText: '你目前的位置',
                     }
-                    this.setUserPosition(position)
-                    this.addUserMarker(position)
+                    this.setUserPosition(data)
+                    this.addUserMarker(data)
                 })
             }
         },
@@ -151,15 +190,12 @@ export default {
                 this.currentMiddleIndex = index
             }
         },
-        addUserMarker(position) {
-            this.markers.push({
-                position,
-            })
+        addUserMarker(data) {
+            this.markers.push(data)
         },
     },
     mounted() {
         this.getGeoLocation()
-        this.addUserMarker()
     },
 }
 </script>
